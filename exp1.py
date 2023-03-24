@@ -8,6 +8,18 @@ from sklearn.model_selection import GridSearchCV
 from matplotlib.ticker import FormatStrFormatter
 from sklearn.feature_selection import mutual_info_regression
 import matplotlib.colors as colors
+import time
+
+from sklearn.tree import DecisionTreeRegressor
+from sklearn.neighbors import KNeighborsRegressor
+import lightgbm as lgb
+from sklearn.linear_model import Ridge
+from sklearn.neighbors import KNeighborsRegressor
+from sklearn.pipeline import Pipeline
+from sklearn.neural_network import MLPRegressor
+from sklearn.preprocessing import PolynomialFeatures
+
+
 from general import *
 
 left  = 0.125  # the left side of the subplots of the figure
@@ -168,14 +180,14 @@ def exp1(it, theta, gamma, c, a, b, skew, m, n, p, loss, alpha, B,
          tests={'stfr':True, 'resit':True, 'gcm':True, 'crt':True, 'cpt':True,'rbpt':True, 'rbpt2':True}):
     
     #Gen. training data
-    Z_train=sample_z(m,p)
-    X_train=sample_x(Z_train, b)
-    Y_train=sample_y(X_train, Z_train, a, b, c, gamma, skew)
+    Z_train=sample_z(m, p, random_state=2*it)
+    X_train=sample_x(Z_train, b, random_state=2*it)
+    Y_train=sample_y(X_train, Z_train, a, b, c, gamma, skew, random_state=2*it)
 
     #Gen. test data
-    Z_test=sample_z(n,p)
-    X_test=sample_x(Z_test, b)
-    Y_test=sample_y(X_test, Z_test, a, b, c, gamma, skew)   
+    Z_test=sample_z(n, p, random_state=2*it+1)
+    X_test=sample_x(Z_test, b, random_state=2*it+1)
+    Y_test=sample_y(X_test, Z_test, a, b, c, gamma, skew, random_state=2*it+1)  
             
     #Fitting models
     g1 = g()
@@ -186,40 +198,105 @@ def exp1(it, theta, gamma, c, a, b, skew, m, n, p, loss, alpha, B,
     g3.fit(None, Z_train, X_train)
                 
     #STFR
-    if tests['stfr']: reject_stfr = (get_pval_stfr(X_test, Z_test, Y_test, g1, g2, loss=loss) <= alpha)
-    else: reject_stfr = np.nan
+    if tests['stfr']: 
+        start_time = time.time()
+        reject_stfr = (get_pval_stfr(X_test, Z_test, Y_test, g1, g2, loss=loss) <= alpha)
+        time_stfr = time.time() - start_time
+    else: 
+        reject_stfr = np.nan
+        time_stfr = np.nan
+    
         
     #RESIT
-    if tests['resit']: reject_resit = (get_pval_resit(X_test, Z_test, Y_test, g2, g3, B=B) <= alpha)
-    else: reject_resit = np.nan
-        
-    #GCM  
-    if tests['gcm']: reject_gcm = (get_pval_gcm(X_test, Z_test, Y_test, g2, g3) <= alpha)
-    else: reject_gcm = np.nan
-        
+    if tests['resit']: 
+        start_time = time.time()
+        reject_resit = (get_pval_resit(X_test, Z_test, Y_test, g2, g3, B=B) <= alpha)
+        time_resit = time.time() - start_time
+    else: 
+        reject_resit = np.nan
+        time_resit = np.nan
+    
+    
+    #GCM
+    if tests['gcm']: 
+        start_time = time.time()
+        reject_gcm = (get_pval_gcm(X_test, Z_test, Y_test, g2, g3) <= alpha)
+        time_gcm = time.time() - start_time
+    else: 
+        reject_gcm = np.nan
+        time_gcm = np.nan
+    
+    
     #CRT
-    if tests['crt']: reject_crt = (get_pval_crt(X_test, Z_test, Y_test, b, g1, g2, theta, B, loss=loss) <= alpha)
-    else: reject_crt = np.nan   
-        
+    if tests['crt']: 
+        start_time = time.time()
+        reject_crt = (get_pval_crt(X_test, Z_test, Y_test, b, g1, g2, theta, B, loss=loss) <= alpha)
+        time_crt = time.time() - start_time
+    else: 
+        reject_crt = np.nan   
+        time_crt = np.nan   
+    
+    
     #CPT
-    if tests['cpt']: reject_cpt = (get_pval_cpt(X_test, Z_test, Y_test, b, g1, g2, theta, B, loss=loss) <= alpha)
-    else: reject_cpt = np.nan
-        
+    if tests['cpt']: 
+        start_time = time.time()
+        reject_cpt = (get_pval_cpt(X_test, Z_test, Y_test, b, g1, g2, theta, B, loss=loss) <= alpha)
+        time_cpt = time.time() - start_time
+    else: 
+        reject_cpt = np.nan
+        time_cpt = np.nan
+    
+    
     #RBPT
-    if tests['rbpt']: reject_rbpt = (get_pval_rbpt(X_test, Z_test, Y_test, b, g1, theta, loss=loss) <= alpha)
-    else: reject_rbpt = np.nan
-        
+    if tests['rbpt']: 
+        start_time = time.time()
+        reject_rbpt = (get_pval_rbpt(X_test, Z_test, Y_test, b, g1, theta, loss=loss) <= alpha)
+        time_rbpt = time.time() - start_time
+    else: 
+        reject_rbpt = np.nan
+        time_rbpt = np.nan
+    
+    
     #RBPT2
     if tests['rbpt2']: 
-        h = GridSearchCV(KernelRidge(kernel='poly'), cv=2, n_jobs=1,
-                      param_grid={"alpha": [1e0, 0.1, 1e-2, 1e-3],
-                                  "degree": [2]})
-        h.fit(Z_train, g1.predict(X_train,Z_train).squeeze())
-        reject_rbpt2 = (get_pval_rbpt2(X_test, Z_test, Y_test, g1, h, loss=loss) <= alpha)
-    else: reject_rbpt2 = np.nan
+        start_time = time.time()
+        k=10
+        h = GridSearchCV(KernelRidge(kernel='poly'), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+                         param_grid={"alpha": np.logspace(0,-k,k), "degree": [2]}) 
+         
+        #import sklearn
+        #d = sklearn.metrics.pairwise_distances(Z_train)
+        #d = np.median(d)
+        #h = GridSearchCV(KernelRidge(kernel='rbf'), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+        #                 param_grid={"alpha":np.logspace(0,-k,k), "gamma": [.5*(1/d**2)]}) 
         
+        #h = GridSearchCV(DecisionTreeRegressor(random_state=0), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+        #                 param_grid={"min_samples_leaf": [5,10,25,50]})
+        #h = GridSearchCV(KNeighborsRegressor(), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+        #                 param_grid={"n_neighbors": [5,10,25,50], 'weights':['distance']})
+        #h = GridSearchCV(lgb.LGBMRegressor(random_state=0, linear_tree=True), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+        #                 param_grid={'n_estimators': [50,100]})
+        
+        #model = Pipeline([('poly', PolynomialFeatures(degree=2)),
+        #                  ('linear', Ridge())])
+        
+        #h = GridSearchCV(model, cv=2, n_jobs=1, scoring='neg_mean_squared_error',
+        #                 param_grid={"linear__alpha": [1e2, 1e0, 1e-2, 1e-4]})
+        
+        #h = GridSearchCV(MLPRegressor(random_state=1, solver='lbfgs', hidden_layer_sizes=(20,), tol=0.001, activation='logistic'), cv=2, n_jobs=1,             scoring='neg_mean_squared_error',param_grid={"alpha": [1e2, 1e0, 1e-2]})
+                         
+        h.fit(Z_train, g1.predict(X_train,Z_train).squeeze())
+        
+        reject_rbpt2 = (get_pval_rbpt2(X_test, Z_test, Y_test, g1, h, loss=loss) <= alpha)
+        time_rbpt2 = time.time() - start_time
+    else: 
+        reject_rbpt2 = np.nan
+        time_rbpt2 = np.nan
+    
+    
     #Output
-    return [reject_stfr, reject_resit, reject_gcm, reject_crt, reject_cpt, reject_rbpt, reject_rbpt2] 
+    return [reject_stfr, reject_resit, reject_gcm, reject_crt, reject_cpt, reject_rbpt, reject_rbpt2,
+            time_stfr, time_resit, time_gcm, time_crt, time_cpt, time_rbpt, time_rbpt2] 
 
 
 ### Plots
