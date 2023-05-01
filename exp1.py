@@ -12,7 +12,6 @@ import time
 
 from sklearn.tree import DecisionTreeRegressor
 from sklearn.neighbors import KNeighborsRegressor
-import lightgbm as lgb
 from sklearn.linear_model import Ridge
 from sklearn.neighbors import KNeighborsRegressor
 from sklearn.pipeline import Pipeline
