@@ -244,5 +244,5 @@ def exp22(it, n_vals, loss, alpha, B, percent=True):
     pvals = np.array(pvals)
     pvals[:,1:] = 1*(pvals[:,1:]<=alpha)
     reject_prop = np.array(pd.DataFrame(pvals).groupby(by=[0]).mean()).tolist()
-    
-    return reject_prop
+
+    return reject_prop, times

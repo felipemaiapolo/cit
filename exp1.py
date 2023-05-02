@@ -25,7 +25,7 @@ left  = 0.125  # the left side of the subplots of the figure
 right = 0.9    # the right side of the subplots of the figure
 bottom = 0.1   # the bottom of the subplots of the figure
 top = 0.9      # the top of the subplots of the figure
-wspace = 0.3   # the amount of width reserved for blank space between subplots
+wspace = 0.4   # the amount of width reserved for blank space between subplots
 hspace = 0.3   # the amount of height reserved for white space between subplots
 
 def get_pval_stfr(X, Z, Y, g1, g2, loss='mae'):
@@ -85,19 +85,6 @@ def get_pval_crt(X, Z, Y, b, g1, g2, theta, B=500, loss='mae'):
     return pval
 
 #### RBPT
-#def predict_h(Z, cd, x, g1):
-#    y = np.hstack([g1.predict(x[:,j:(j+1)],Z) for j in range(x.shape[1])])
-#    y = y * cd
-#    return np.trapz(y, x, axis=1).reshape(-1,1)
-
-#def get_pval_rbpt(X, Z, Y, g1, cd, x_grid, loss='mae'):
-#    n = X.shape[0]
-#    loss1 = get_loss(Y, g1.predict(X,Z), loss=loss)
-#    loss2 = get_loss(Y, predict_h(Z, cd, x_grid, g1), loss=loss)
-#    T = loss2-loss1
-#    pval = 1 - scipy.stats.norm.cdf(np.sqrt(n)*np.mean(T)/np.std(T))
-#    return pval
-
 def get_pval_rbpt(X, Z, Y, b, g1, theta, loss='mae'):
     n = X.shape[0]
     loss1 = get_loss(Y, g1.predict(X,Z), loss=loss)
@@ -262,28 +249,7 @@ def exp1(it, theta, gamma, c, a, b, skew, m, n, p, loss, alpha, B,
         k=10
         h = GridSearchCV(KernelRidge(kernel='poly'), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
                          param_grid={"alpha": np.logspace(0,-k,k), "degree": [2]}) 
-         
-        #import sklearn
-        #d = sklearn.metrics.pairwise_distances(Z_train)
-        #d = np.median(d)
-        #h = GridSearchCV(KernelRidge(kernel='rbf'), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
-        #                 param_grid={"alpha":np.logspace(0,-k,k), "gamma": [.5*(1/d**2)]}) 
         
-        #h = GridSearchCV(DecisionTreeRegressor(random_state=0), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
-        #                 param_grid={"min_samples_leaf": [5,10,25,50]})
-        #h = GridSearchCV(KNeighborsRegressor(), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
-        #                 param_grid={"n_neighbors": [5,10,25,50], 'weights':['distance']})
-        #h = GridSearchCV(lgb.LGBMRegressor(random_state=0, linear_tree=True), cv=2, n_jobs=1, scoring='neg_mean_squared_error',
-        #                 param_grid={'n_estimators': [50,100]})
-        
-        #model = Pipeline([('poly', PolynomialFeatures(degree=2)),
-        #                  ('linear', Ridge())])
-        
-        #h = GridSearchCV(model, cv=2, n_jobs=1, scoring='neg_mean_squared_error',
-        #                 param_grid={"linear__alpha": [1e2, 1e0, 1e-2, 1e-4]})
-        
-        #h = GridSearchCV(MLPRegressor(random_state=1, solver='lbfgs', hidden_layer_sizes=(20,), tol=0.001, activation='logistic'), cv=2, n_jobs=1,             scoring='neg_mean_squared_error',param_grid={"alpha": [1e2, 1e0, 1e-2]})
-                         
         h.fit(Z_train, g1.predict(X_train,Z_train).squeeze())
         
         reject_rbpt2 = (get_pval_rbpt2(X_test, Z_test, Y_test, g1, h, loss=loss) <= alpha)
@@ -298,12 +264,17 @@ def exp1(it, theta, gamma, c, a, b, skew, m, n, p, loss, alpha, B,
             time_stfr, time_resit, time_gcm, time_crt, time_cpt, time_rbpt, time_rbpt2] 
 
 
+
 ### Plots
 def plot_type1(results, sett, skew, loss, alpha=.05, xlabel='x', ylabel='y', legend=True):
     ####
-    colors=['#722ef9','#2F58EB','#2fadeb','#EB9846','#D9120B'] 
-    if '1_1' in sett: names=['STFR','RESIT','GCM','RBPT', 'RBPT2'] 
-    else: names=['CRT', 'CPT','RBPT']
+    
+    if '1_1' in sett: 
+        colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728', '#9467bd']
+        names = ['RBPT', 'RBPT2','STFR','RESIT','GCM'] 
+    else: 
+        colors = ['#1f77b4', '#8c564b', '#e377c2']
+        names=['RBPT', 'CRT', 'CPT']
         
     ####
     columns_by = ['set','c','theta','skew','gamma','loss']
@@ -320,30 +291,30 @@ def plot_type1(results, sett, skew, loss, alpha=.05, xlabel='x', ylabel='y', leg
     
     ####
     for j in range(len(names)):
-        if '1_1' in sett: i = j
-        else: i=j+1
-        plt.plot(x, results_mean[:,j], label=names[j], color=colors[i], lw=1, alpha=1)
-        plt.fill_between(x, results_mean[:,j]-results_std[:,j], results_mean[:,j]+results_std[:,j], color=colors[i], alpha=.15)
+        plt.plot(x, results_mean[:,j], label=names[j], color=colors[j], lw=1, alpha=1)
+        plt.fill_between(x, results_mean[:,j]-results_std[:,j], results_mean[:,j]+results_std[:,j], color=colors[j], alpha=.15)
     
     if legend:
-        if '1_1' in sett: plt.legend(bbox_to_anchor=(.625, .65), loc='upper left', ncol = 1, prop={'size': 9.25}, borderaxespad=.0, frameon=True, framealpha=.6)                
-        else: plt.legend(bbox_to_anchor=(.0225, .97), loc='upper left', ncol = 1, prop={'size': 10}, borderaxespad=.0, frameon=True, framealpha=.6)                
+        if '1_1' in sett: plt.legend(bbox_to_anchor=(.51, .8), loc='upper left', ncol = 1, prop={'size': 10}, borderaxespad=.0, frameon=True, framealpha=.5)                
+        else: plt.legend(bbox_to_anchor=(.0225, .97), loc='upper left', ncol = 1, prop={'size': 10}, borderaxespad=.0, frameon=True, framealpha=.5)                
     plt.axhline(y=alpha, color='r', linestyle='--', lw=1, alpha=.5)
-    plt.xticks(fontsize=11)
-    plt.xlabel(xlabel, size=13)
+    plt.xticks(fontsize=12)
+    plt.xlabel(xlabel, size=15)
 
-    plt.yticks(fontsize=11)
-    plt.ylabel(ylabel, size=13)
+    plt.yticks(fontsize=12)
+    plt.ylabel(ylabel, size=15)
     plt.ylim(0,1)
-    #plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%1.2f'))
+    #plt.gca().xaxis.set_major_formatter(ticker.ScalarFormatter(useMathText=True, useOffset=False))
+    if '1_1' in sett: 
+        plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%1.2f'))
     plt.grid(alpha=.2)
     
 def plot_power(results, skew, loss, alpha=.05, xlabel='x', ylabel='y', legend=True):
     
     ####
     sett='power'
-    colors=['#2fadeb','#EB9846','#D9120B'] 
-    names=['CPT','RBPT', 'RBPT2']
+    colors=['#1f77b4', '#ff7f0e', '#e377c2'] 
+    names=['RBPT', 'RBPT2','CPT']
     columns_by = ['set','c','theta','skew','gamma','loss']
     results_mean = results.groupby(by=columns_by).mean().reset_index()
     results_std = results.groupby(by=columns_by).std().reset_index()
@@ -357,12 +328,12 @@ def plot_power(results, skew, loss, alpha=.05, xlabel='x', ylabel='y', legend=Tr
         plt.fill_between(x, results_mean[:,j]-results_std[:,j], results_mean[:,j]+results_std[:,j], color=colors[j], alpha=.15)
     
     if legend:
-        plt.legend(bbox_to_anchor=(.0225, .97), loc='upper left', ncol = 1, prop={'size': 10}, borderaxespad=.0, frameon=True, framealpha=.6)                
+        plt.legend(bbox_to_anchor=(.0225, .97), loc='upper left', ncol = 1, prop={'size': 11}, borderaxespad=.0, frameon=True, framealpha=.5)                
     plt.axhline(y=alpha, color='r', linestyle='--', lw=1, alpha=.5)
-    plt.xticks(fontsize=11)
-    plt.xlabel(xlabel, size=13)
-    plt.yticks(fontsize=11)
-    plt.ylabel(ylabel, size=13)
+    plt.xticks(fontsize=12)
+    plt.xlabel(xlabel, size=15)
+    plt.yticks(fontsize=12)
+    plt.ylabel(ylabel, size=15)
     plt.ylim(0,1)
     #plt.gca().xaxis.set_major_formatter(FormatStrFormatter('%1.2f'))
     plt.grid(alpha=.2)
