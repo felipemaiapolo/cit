@@ -82,7 +82,6 @@ def get_pval_cpt(X, Z, Y, p_model, g1, g2, B=500, loss='mae'):
     
     nstep=50
     mu=p_model.predict_proba(Z)[:,1]
-    sig2=np.ones(X.shape[0])
     X_CPT = generate_X_CPT_bernoulli(nstep=nstep, M=B, X0=X.squeeze(), mu=mu)
 
     Ts=[]

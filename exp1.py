@@ -166,14 +166,14 @@ def exp1(it, theta, gamma, c, a, b, skew, m, n, p, loss, alpha, B,
          tests={'stfr':True, 'resit':True, 'gcm':True, 'crt':True, 'cpt':True,'rbpt':True, 'rbpt2':True}):
     
     #Gen. training data
-    Z_train=sample_z(m, p, random_state=2*it)
-    X_train=sample_x(Z_train, b, random_state=2*it)
-    Y_train=sample_y(X_train, Z_train, a, b, c, gamma, skew, random_state=2*it)
+    Z_train=sample_z(m, p, random_state=6*it)
+    X_train=sample_x(Z_train, b, random_state=6*it+1)
+    Y_train=sample_y(X_train, Z_train, a, b, c, gamma, skew, random_state=6*it+2)
 
     #Gen. test data
-    Z_test=sample_z(n, p, random_state=2*it+1)
-    X_test=sample_x(Z_test, b, random_state=2*it+1)
-    Y_test=sample_y(X_test, Z_test, a, b, c, gamma, skew, random_state=2*it+1)  
+    Z_test=sample_z(n, p, random_state=6*it+3)
+    X_test=sample_x(Z_test, b, random_state=6*it+4)
+    Y_test=sample_y(X_test, Z_test, a, b, c, gamma, skew, random_state=6*it+5)  
             
     #Fitting models
     g1 = g()
