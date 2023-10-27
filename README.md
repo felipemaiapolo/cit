@@ -1,4 +1,4 @@
-# Code for the paper "Conditional independence testing under model misspecification"
+# Code for the paper "Conditional independence testing under misspecified inductive biases"
 
 All the code was run in Python 3.8. Please e-mail me (felipemaiapolo@gmail.com) if you have any questions. The main files in this repo are:
 
